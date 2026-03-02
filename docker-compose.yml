@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # PostgreSQL - Relational Database (SQL)
+  # ============================================================
+  postgres:
+    image: postgres:15
+    container_name: megastore_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: db_megastore_exam
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docs/sql/ddl.sql:/docker-entrypoint-initdb.d/01-ddl.sql
+      - ./docs/sql/views.sql:/docker-entrypoint-initdb.d/02-views.sql
+
+  # ============================================================
+  # MongoDB - NoSQL Database
+  # ============================================================
+  mongo:
+    image: mongo:7
+    container_name: megastore_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  postgres_data:
+  mongo_data:
