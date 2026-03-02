@@ -6,10 +6,10 @@
 
 // ============================================================
 // Collection 1: customer_purchase_history
-// Pattern: Denormalized document per customer (Embedding)
-// Justification: Embeds all orders and items in a single document
-// per customer for fast reads without JOINs. Ideal for the
-// "read customer history" use case.
+// Pattern: Denormalized document per customer (embedding)
+// Justification: Optimizes read performance for customer
+// history queries — all orders and items in a single document
+// eliminates the need for JOINs.
 // ============================================================
 
 db.runCommand({
@@ -21,7 +21,7 @@ db.runCommand({
       properties: {
         customer_email: {
           bsonType: "string",
-          description: "Customer email - required, unique identifier"
+          description: "Customer email - required and must be a string"
         },
         customer_name: {
           bsonType: "string",
@@ -52,7 +52,7 @@ db.runCommand({
               },
               items: {
                 bsonType: "array",
-                description: "Array of products in this order",
+                description: "Array of items in the order",
                 items: {
                   bsonType: "object",
                   required: ["product_sku", "product_name", "quantity", "unit_price", "total_line_value"],
@@ -82,7 +82,7 @@ db.runCommand({
                     total_line_value: {
                       bsonType: "double",
                       minimum: 0,
-                      description: "Total value (quantity * unit_price)"
+                      description: "Total value for this line item"
                     }
                   }
                 }
@@ -97,21 +97,20 @@ db.runCommand({
   validationAction: "warn"
 });
 
-// Unique index on customer_email to prevent duplicate customer documents
+// Unique index to prevent duplicate customer entries
 db.customer_purchase_history.createIndex(
   { customer_email: 1 },
   { unique: true, name: "idx_unique_customer_email" }
 );
 
-print("✅ customer_purchase_history: Schema validation and unique index applied.");
+print("✅ customer_purchase_history validation and indexes applied.");
 
 // ============================================================
 // Collection 2: audit_logs
 // Pattern: Append-only log documents
 // Justification: Captures deleted entity snapshots whose shape
 // varies by entity type. MongoDB's flexible schema (Mixed type)
-// is ideal for storing different entity structures. Used for
-// event sourcing and audit trail compliance.
+// is ideal for storing different entity structures.
 // ============================================================
 
 db.runCommand({
@@ -137,7 +136,7 @@ db.runCommand({
         },
         deleted_data: {
           bsonType: "object",
-          description: "Complete snapshot of the deleted entity data"
+          description: "Complete snapshot of the entity before deletion"
         },
         deleted_by: {
           bsonType: "string",
@@ -154,18 +153,21 @@ db.runCommand({
   validationAction: "warn"
 });
 
-// Index for fast queries by entity type and deletion date
+// Index for efficient querying by entity type and date
 db.audit_logs.createIndex(
   { entity_type: 1, deleted_at: -1 },
   { name: "idx_audit_entity_date" }
 );
 
-// Index for looking up by entity ID
+// Index for querying by entity ID
 db.audit_logs.createIndex(
   { entity_id: 1 },
   { name: "idx_audit_entity_id" }
 );
 
-print("✅ audit_logs: Schema validation and indexes applied.");
+print("✅ audit_logs validation and indexes applied.");
 print("");
-print("🎉 All MongoDB schema validations applied successfully!");
+print("=== MongoDB Schema Validation Complete ===");
+print("Collections configured:");
+print("  1. customer_purchase_history (denormalized, embedded orders)");
+print("  2. audit_logs (append-only, flexible deleted_data)");
