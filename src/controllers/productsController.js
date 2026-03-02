@@ -68,7 +68,8 @@ const updateProduct = async (req, res, next) => {
          name = COALESCE($2, name),
          unit_price = COALESCE($3, unit_price),
          category_id = COALESCE($4, category_id),
-         supplier_id = COALESCE($5, supplier_id)
+         supplier_id = COALESCE($5, supplier_id),
+         updated_at = CURRENT_TIMESTAMP
        WHERE id = $6 RETURNING *`,
       [sku, name, unit_price, category_id, supplier_id, id]
     );
@@ -102,6 +103,9 @@ const deleteProduct = async (req, res, next) => {
 
     const productData = productResult.rows[0];
 
+    // Delete related order_items first
+    await pool.query('DELETE FROM order_items WHERE product_id = $1', [id]);
+
     // Save audit log to MongoDB
     await AuditLog.create({
       entity_type: 'product',
@@ -115,10 +119,19 @@ const deleteProduct = async (req, res, next) => {
     // Delete from PostgreSQL
     await pool.query('DELETE FROM products WHERE id = $1', [id]);
 
-    res.status(200).json({ message: 'Product deleted successfully', deleted: productData });
+    res.status(200).json({ message: 'Product deleted successfully', audit: 'Saved to MongoDB audit_logs', deleted: productData });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct };
+const getAuditLogs = async (req, res, next) => {
+  try {
+    const logs = await AuditLog.find().sort({ deleted_at: -1 });
+    res.json(logs);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct, getAuditLogs };
