@@ -5,8 +5,12 @@ const {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getAuditLogs
 } = require('../controllers/productsController');
+
+// Audit logs MUST be before /:id to avoid conflict
+router.get('/audit-logs', getAuditLogs);
 
 router.get('/', getAllProducts);
 router.get('/:id', getProductById);
