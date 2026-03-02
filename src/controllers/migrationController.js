@@ -175,7 +175,7 @@ const migrateData = async (rows) => {
     await client.query('COMMIT');
 
     // Step 7: Populate MongoDB customer_purchase_history
-    await populateCustomerHistory(rows, customerMap, orderMap, productMap, categoryMap, supplierMap, summary);
+    await populateCustomerHistory(rows, summary);
 
   } catch (err) {
     await client.query('ROLLBACK');
@@ -187,7 +187,7 @@ const migrateData = async (rows) => {
   return summary;
 };
 
-const populateCustomerHistory = async (rows, customerMap, orderMap, productMap, categoryMap, supplierMap, summary) => {
+const populateCustomerHistory = async (rows, summary) => {
   const db = mongoose.connection.db;
   const collection = db.collection('customer_purchase_history');
 
